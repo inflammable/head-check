@@ -30,18 +30,13 @@ module.exports = function(startingUrl, options) {
   var packageRequest = function(requestUrl) {
       var parsedUrl = url.parse(requestUrl, true),
           requestObject = {
-            method: 'HEAD',
-            protocol: 'http:',
-            host: '',
-            port: '80',
-            pathname: '/',
-            path: '/'
+            method: 'HEAD'
           };
 
       requestObject.host = parsedUrl.host;
       requestObject.port = parsedUrl.port || parsedUrl.protocol == 'https:' ? 443 : 80;
-      requestObject.pathname = parsedUrl.pathname;
-      requestObject.path = parsedUrl.path;
+      requestObject.pathname = parsedUrl.pathname || '/';
+      requestObject.path = parsedUrl.path || '/';
       requestObject.search = parsedUrl.search;
       requestObject.protocol = parsedUrl.protocol;
       requestObject.rejectUnauthorized = parsedUrl.protocol == 'https:' ? rejectUnauthorized : null;
@@ -62,7 +57,8 @@ module.exports = function(startingUrl, options) {
           request.end();
           break;
         default:
-          console.log("Unknown protocol: '" + requestObject.protocol + "'");
+          var errorMessage = "Unknown protocol: '" + requestObject.protocol + "'";
+          throw errorMessage;
       }
     },
     processHeaders = function(response) {

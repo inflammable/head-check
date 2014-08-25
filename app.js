@@ -9,5 +9,5 @@ var redirectMapOptions = {
       //startOnInit: true,
       callback: logJSON
     },
-    redirectMap = headcheck('http://raronas/1', redirectMapOptions);
+    redirectMap = headcheck('cake://raronas/1', redirectMapOptions);
     redirectMap.start();
