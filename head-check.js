@@ -10,30 +10,22 @@ options: <object> - {
 
 */
 
-var headcheck = function(startingUrl, options) {
+'use strict';
 
-  var http = require('http'),
-    https = require('https'),
-    url = require('url');
+var http = require('http'),
+  https = require('https'),
+  url = require('url');
+
+module.exports = function(startingUrl, options) {
 
   var results = [],
       currentDepth = 0;
 
-  var options = options || {};
-
-  if(!options.hasOwnProperty('maxRedirectReqs')) {
-     options.maxRedirectReqs = 10;
-  } else {
-     options.maxRedirectReqs = parseInt(options.maxRedirectReqs,10);
-  }
-
-  if(!options.hasOwnProperty('rejectUnauthorized')) {
-    options.rejectUnauthorized = false;
-  }
-
-  if(!options.hasOwnProperty('callback') || typeof options.callback !== 'function') {
-    options.rejectUnauthorized = function(resultsData){};
-  }
+  options = options || {};
+  options.maxRedirectReqs = options.maxRedirectReqs || 10;
+  options.rejectUnauthorized = options.rejectUnauthorized || false;
+  options.callback = options.callback || function(resultsData){};
+  options.startOnInit = options.startOnInit || false;
 
   var packageRequest = function(requestUrl) {
       var parsedUrl = url.parse(requestUrl, true),
@@ -103,7 +95,8 @@ var headcheck = function(startingUrl, options) {
       }
     };
 
-  if(options.hasOwnProperty('startOnInit') && options.startOnInit === true) {
+
+  if(options.startOnInit === true) {
     start();
   } else {
     return {
@@ -112,13 +105,3 @@ var headcheck = function(startingUrl, options) {
   };
 };
 
-//lazy output.
-var logJSON = function(objectData) {
-      console.log(JSON.stringify(objectData));
-    };
-
-var redirectMapOptions = {
-      callback: logJSON,
-      startOnInit: true
-    },
-    redirectMap = new headcheck('http://raronas/1', redirectMapOptions);
