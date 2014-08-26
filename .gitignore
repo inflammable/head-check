@@ -25,3 +25,5 @@ build/Release
 node_modules
 
 test.js
+app.js
+
