@@ -1,13 +1,14 @@
-var headcheck = require('./head-check');
+var HeadQueue = require('./head-queue');
 
 //lazy output.
 var logJSON = function(objectData) {
-      console.log(JSON.stringify(objectData));
-    };
+  console.log(JSON.stringify(objectData));
+};
 
 var redirectMapOptions = {
-      //startOnInit: true,
-      callback: logJSON
-    },
-    redirectMap = headcheck('cake://raronas/1', redirectMapOptions);
-    redirectMap.start();
+  callback: logJSON,
+  maxRedirectReqs: 10,
+  rejectUnauthorized: true
+};
+
+var redirectMap = HeadQueue(['https://raronas/1','http://raromachine.com'], redirectMapOptions);
