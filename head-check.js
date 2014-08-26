@@ -1,110 +1,46 @@
-// url: <string> - http or https
-// options: <object> - {
-//   maxRedirectReqs: <int>, - number of times to follow a redirect before aborting
-//   rejectUnauthorized: <bool>, - follow non-valid SSL certificates
-//   callback: <func>,
-// }
+var HeadRequest = require('./head-request');
 
-var http = require('http');
-var https = require('https');
-var url = require('url');
+/**
+ * Class to dispatch one or more head-response queries.
+ * @param {string|string[]} urlList - list of URLs to query
+ * @param {Object} [options]
+ * @param {Number} [options.maxRedirectReqs] - max number of hops
+ * @param {String} [options.rejectUnauthorized] - reject invalid https certs
+ * @param {Function} [options.callback=function(){}] - callback when complete
+ */
 
-module.exports = function(startingUrl, options) {
+module.exports = function(urlList, options) {
 
-  var results = [],
-      currentDepth = 0;
+  urlList = typeof urlList === 'string' ? [].push(urlList) : urlList;
 
   options = options || {};
-  options.maxRedirectReqs = options.maxRedirectReqs || 10;
-  options.rejectUnauthorized = options.rejectUnauthorized || false;
-  options.callback = options.callback || function() {};
 
-  function packageRequest(requestUrl) {
-    var parsedUrl = url.parse(requestUrl, true);
-    var requestObject = {
-      method: 'HEAD'
-    };
+  callback = options.callback || function() {};
 
-    requestObject.host = parsedUrl.host;
-    requestObject.port = parsedUrl.port || parsedUrl.protocol === 'https:' ? 443 : 80;
-    requestObject.pathname = parsedUrl.pathname || '/';
-    requestObject.path = parsedUrl.path || '/';
-    requestObject.search = parsedUrl.search;
-    requestObject.protocol = parsedUrl.protocol;
-    requestObject.rejectUnauthorized = parsedUrl.protocol === 'https:' ? options.rejectUnauthorized : null;
+  options.callback = saveResult;
 
-    return requestObject;
+  if (urlList.length === 0) {
+    return options.callback();
   }
 
-  function  makeRequest(requestUrl) {
-    var requestObject = packageRequest(requestUrl);
-    var request;
+  var results = [];
 
-    switch (requestObject.protocol) {
-      case 'http:':
-        try {
-          request = http.request(requestObject, processHeaders);
-          //request.on('error', updateResultsWithError);
-          request.end();
-        } catch (e) {
-          updateResultsWithError(e);
-        }
-        break;
-      case 'https:':
-        try {
-          request = https.request(requestObject, processHeaders);
-          request.on('error', updateResultsWithError);
-          request.end();
-        } catch (e) {
-          updateResultsWithError(e);
-        }
-        break;
-      default:
-        var errorMessage = "Unknown protocol: '" + requestObject.protocol + "'";
-        throw errorMessage;
+  function saveResult(result) {
+    results.push(result);
+    if(results.length == urlList.length) {
+      callback(results);
     }
   }
 
-  function processHeaders(response) {
-    updateResultStatus(response.statusCode);
-    if((response.statusCode == 301 || response.statusCode == 302) &&
-       response.headers.location.length > 0) {
-      updateResults(response.headers.location);
-      redirect(response.headers.location);
-    } else {
-      return options.callback(results);
+  function processUrlList() {
+    for(var i = 0; i < urlList.length; i++) {
+      (function(i) {
+        var currentUrl = urlList[i];
+        process.nextTick( function() { HeadRequest(currentUrl, options); });
+      })(i);
     }
   }
 
+  processUrlList();
 
-  function redirect(redirectUrl) {
-    if (currentDepth < options.maxRedirectReqs) {
-      currentDepth++;
-      var redirectRequestObject = url.parse(redirectUrl);
-      makeRequest(redirectRequestObject);
-    }
-  }
-
-  function updateResults(resultUrl) {
-    results.push({url:resultUrl, statusCode: null, error: null});
-  }
-
-  function updateResultsWithError(error) {
-    results[results.length-1].error = error;
-    return options.callback(results);
-  }
-
-  function updateResultStatus(resultStatus) {
-    results[results.length-1].statusCode = resultStatus;
-  }
-
-  function start() {
-    if(results.length === 0) {
-      updateResults(startingUrl);
-      makeRequest(startingUrl);
-    }
-  }
-
-  start();
 };
-
